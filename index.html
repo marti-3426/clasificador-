@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Postulación de CVs</title>
+   
+    <!-- Librerías de procesamiento local vía CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+
+    <!-- Fuente Inter de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-body: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+
+        * { box-sizing: border-box; }
+
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            padding: 40px 20px;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 36px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid var(--border-color);
+        }
+
+
+        /* Header y Navegación */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+        }
+
+
+        .navbar h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+
+        .nav-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+        }
+
+
+        .nav-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+
+        .nav-btn.admin-btn {
+            background: #475569;
+            box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15);
+        }
+
+
+        .nav-btn.admin-btn:hover {
+            background: #334155;
+        }
+
+
+        /* Descripción */
+        .description-text {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+       
+        /* Formularios y controles */
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #334155;
+            font-size: 14px;
+        }
+
+
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            color: var(--text-main);
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+
+        input[type="text"]:focus, input[type="password"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+
+        /* Area de Subida de Archivo */
+        .upload-box {
+            border: 2px dashed #93c5fd;
+            padding: 32px 20px;
+            text-align: center;
+            border-radius: 12px;
+            background: #eff6ff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+
+        .upload-box:hover {
+            background: #dbeafe;
+            border-color: var(--primary);
+        }
+
+
+        .upload-box span {
+            color: #1e40af;
+            font-size: 14px;
+            display: block;
+        }
+
+
+        .upload-box strong {
+            font-size: 16px;
+            color: #1d4ed8;
+        }
+
+
+        .btn-submit {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        }
+
+
+        .btn-submit:hover {
+            background-color: var(--success-hover);
+            transform: translateY(-1px);
+        }
+
+
+        .btn-submit:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+       
+        /* Mensajes de estado */
+        .status-msg {
+            font-weight: 500;
+            margin-top: 15px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+
+
+        .status-loading {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fef08a;
+            display: block;
+        }
+
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            display: block;
+        }
+       
+        /* Tabla de Panel Administrador */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+
+        th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background-color: #f8fafc; }
+
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+
+        .badge-ds { background: #dbeafe; color: #1e40af; }
+        .badge-web { background: #dcfce7; color: #166534; }
+        .badge-rrhh { background: #fef9c3; color: #854d0e; }
+        .badge-otro { background: #f1f5f9; color: #475569; }
+
+
+        .clear-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+
+        .clear-btn:hover { background: var(--danger-hover); }
+
+
+        /* Botón Acciones */
+        .btn-view-cv {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+
+        .btn-view-cv:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+
+        /* Modal Login */
+        .login-box {
+            max-width: 380px;
+            margin: 40px auto;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+
+        .login-box h3 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <!-- Barra de Navegación -->
+    <div class="navbar">
+        <h2 id="appTitle">Portal del Candidato</h2>
+        <button id="toggleViewBtn" class="nav-btn admin-btn" onclick="manejarNavegacionAdmin()">Ver Panel Administrador</button>
+    </div>
+
+
+    <!-- VISTA 1: FORMULARIO CANDIDATO -->
+    <div id="vistaCandidato">
+        <p class="description-text">Completa tus datos personales, elige la posición de tu interés y sube tu currículumVitae (formatos PDF, Word o Imagen).</p>
+       
+        <form id="postulacionForm" onsubmit="registrarPostulacion(event)">
+            <div class="form-group">
+                <label for="nombreUsuario">Nombre Completo:</label>
+                <input type="text" id="nombreUsuario" required placeholder="Ej. Juan Pérez">
+            </div>
+
+
+            <div class="form-group">
+                <label for="puestoPostulacion">Puesto al que te postulas:</label>
+                <select id="puestoPostulacion" required>
+                    <option value="" disabled selected>-- Selecciona un puesto --</option>
+                    <option value="Data Science">Científico de Datos / Data Science</option>
+                    <option value="Desarrollo Web">Desarrollador Web (Frontend / Backend)</option>
+                    <option value="Recursos Humanos">Especialista en Recursos Humanos / RRHH</option>
+                    <option value="Otro">Otro Puesto / Postulación General</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label>Currículum Vitae:</label>
+                <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                    <span id="uploadText"><strong>Haz clic aquí para seleccionar tu archivo</strong><br>(PDF, DOCX, JPG, PNG)</span>
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.jpg,.jpeg,.png" style="display:none;" required onchange="actualizarNombreArchivo(this.files)">
+                </div>
+            </div>
+
+
+            <div id="estadoProcesamiento" class="status-msg"></div>
+            <button type="submit" id="submitBtn" class="btn-submit">Enviar Postulación</button>
+        </form>
+    </div>
+
+
+    <!-- VISTA 2: LOGIN ADMINISTRADOR -->
+    <div id="vistaLoginAdmin" style="display: none;">
+        <div class="login-box">
+            <h3>Acceso Restringido</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Introduce la contraseña de administración para acceder al panel.</p>
+            <div class="form-group">
+                <label for="adminPassword">Contraseña:</label>
+                <input type="password" id="adminPassword" placeholder="Ingresa contraseña">
+            </div>
+            <button class="nav-btn" style="width: 100%; margin-top: 10px; padding: 12px;" onclick="verificarPassword()">Ingresar</button>
+        </div>
+    </div>
+
+
+    <!-- VISTA 3: PANEL ADMINISTRADOR -->
+    <div id="vistaAdmin" style="display: none;">
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; font-size: 18px; color: var(--text-main);">Postulaciones Recibidas</h3>
+            <div>
+                <button class="nav-btn" style="background: var(--success); margin-right: 8px;" onclick="exportarExcel()">Exportar a Excel</button>
+                <button class="clear-btn" onclick="limpiarRegistros()">Borrar Todo</button>
+            </div>
+        </div>
+
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Candidato</th>
+                        <th>Puesto</th>
+                        <th>Clasificación</th>
+                        <th>Archivo</th>
+                        <th>Extracto</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaAdminCuerpo">
+                    <!-- Se llena dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    if (typeof window['pdfjs-dist/build/pdf'] !== 'undefined') {
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+
+    const CONTRASENA_ADMIN = "admin123";
+
+
+    let vistaActual = "candidato";
+    let archivoSeleccionado = null;
+
+
+    const reglasClasificacion = {
+        "Data Science": ["python", "machine learning", "pandas", "sql", "r", "bi", "datos", "analytics"],
+        "Desarrollo Web": ["javascript", "html", "css", "react", "django", "node", "frontend", "backend", "developer", "web"],
+        "Recursos Humanos": ["reclutamiento", "nómina", "talento", "capacitación", "rrhh", "personal", "psicología"]
+    };
+
+
+    function manejarNavegacionAdmin() {
+        if (vistaActual === "candidato") {
+            mostrarSeccion("login");
+        } else {
+            mostrarSeccion("candidato");
+        }
+    }
+
+
+    function verificarPassword() {
+        const inputPass = document.getElementById('adminPassword').value;
+        if (inputPass === CONTRASENA_ADMIN) {
+            document.getElementById('adminPassword').value = "";
+            mostrarSeccion("admin");
+            cargarTablaAdmin();
+        } else {
+            alert("Contraseña incorrecta. Acceso denegado.");
+        }
+    }
+
+
+    function mostrarSeccion(seccion) {
+        const vCandidato = document.getElementById('vistaCandidato');
+        const vLogin = document.getElementById('vistaLoginAdmin');
+        const vAdmin = document.getElementById('vistaAdmin');
+        const btn = document.getElementById('toggleViewBtn');
+        const titulo = document.getElementById('appTitle');
+
+
+        vCandidato.style.display = "none";
+        vLogin.style.display = "none";
+        vAdmin.style.display = "none";
+
+
+        if (seccion === "candidato") {
+            vCandidato.style.display = "block";
+            btn.innerText = "Ver Panel Administrador";
+            titulo.innerText = "Portal del Candidato";
+            vistaActual = "candidato";
+        } else if (seccion === "login") {
+            vLogin.style.display = "block";
+            btn.innerText = "Volver al Portal Candidato";
+            titulo.innerText = "Autenticación Requerida";
+            vistaActual = "login";
+        } else if (seccion === "admin") {
+            vAdmin.style.display = "block";
+            btn.innerText = "Cerrar Sesión Admin";
+            titulo.innerText = "Panel del Administrador";
+            vistaActual = "admin";
+        }
+    }
+
+
+    function actualizarNombreArchivo(files) {
+        if(files.length > 0) {
+            archivoSeleccionado = files[0];
+            document.getElementById('uploadText').innerHTML = `Archivo seleccionado:<br><strong>${archivoSeleccionado.name}</strong>`;
+        }
+    }
+
+
+    function convertirABase64(archivo) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(archivo);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+
+    async function registrarPostulacion(event) {
+        event.preventDefault();
+        if (!archivoSeleccionado) return;
+
+
+        const nombre = document.getElementById('nombreUsuario').value;
+        const puestoBuscado = document.getElementById('puestoPostulacion').value;
+        const estado = document.getElementById('estadoProcesamiento');
+        const submitBtn = document.getElementById('submitBtn');
+
+
+        submitBtn.disabled = true;
+        estado.className = "status-msg status-loading";
+        estado.innerText = "Procesando y guardando tu Currículum... Por favor, espera.";
+
+
+        let ext = archivoSeleccionado.name.split('.').pop().toLowerCase();
+        let textoExtraido = "";
+        let archivoDataURI = "";
+
+
+        try {
+            archivoDataURI = await convertirABase64(archivoSeleccionado);
+
+
+            if (ext === "pdf") {
+                textoExtraido = await extraerTextoPDF(archivoSeleccionado);
+            } else if (ext === "docx") {
+                textoExtraido = await extraerTextoDOCX(archivoSeleccionado);
+            } else if (["jpg", "jpeg", "png"].includes(ext)) {
+                textoExtraido = await extraerTextoImagen(archivoSeleccionado);
+            }
+        } catch (error) {
+            console.error(error);
+            textoExtraido = "";
+        }
+
+
+        let clasificacionAutomatica = clasificarTexto(textoExtraido);
+        let extracto = textoExtraido ? textoExtraido.substring(0, 100).replace(/\n/g, ' ') + "..." : "Texto no legible";
+
+
+        let nuevaPostulacion = {
+            candidato: nombre,
+            puesto: puestoBuscado,
+            clasificacion: clasificacionAutomatica,
+            archivoNombre: archivoSeleccionado.name,
+            archivoData: archivoDataURI,
+            extracto: extracto
+        };
+
+
+        try {
+            let actuales = JSON.parse(localStorage.getItem('postulaciones')) || [];
+            actuales.push(nuevaPostulacion);
+            localStorage.setItem('postulaciones', JSON.stringify(actuales));
+
+
+            estado.className = "status-msg status-success";
+            estado.innerText = "¡Postulación enviada con éxito! Tu currículum ha sido registrado.";
+            document.getElementById('postulacionForm').reset();
+            document.getElementById('uploadText').innerHTML = "Haz clic aquí para seleccionar tu archivo<br>(PDF, DOCX, JPG, PNG)";
+            archivoSeleccionado = null;
+        } catch (e) {
+            alert("El archivo subido es demasiado grande para almacenarse en el navegador. Intenta con un archivo más liviano.");
+        }
+
+
+        submitBtn.disabled = false;
+    }
+
+
+    function extraerTextoPDF(archivo) {
+        return new Promise((resolve, reject) => {
+            if (typeof window['pdfjs-dist/build/pdf'] === 'undefined') {
+                return resolve("Biblioteca PDF.js no cargada.");
+            }
+            let pdfjsLib = window['pdfjs-dist/build/pdf'];
+            let reader = new FileReader();
+            reader.onload = async function() {
+                try {
+                    let typedarray = new Uint8Array(this.result);
+                    let pdf = await pdfjsLib.getDocument({data: typedarray}).promise;
+                    let textoCompleto = "";
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        let pagina = await pdf.getPage(i);
+                        let contenido = await pagina.getTextContent();
+                        textoCompleto += contenido.items.map(item => item.str).join(" ") + "\n";
+                    }
+                    resolve(textoCompleto);
+                } catch (e) { reject(e); }
+            };
+            reader.readAsArrayBuffer(archivo);
+        });
+    }
+
+
+    function extraerTextoDOCX(archivo) {
+        return new Promise((resolve, reject) => {
+            if (typeof mammoth === 'undefined') return resolve("Biblioteca Mammoth no cargada.");
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                mammoth.extractRawText({arrayBuffer: e.target.result})
+                .then(res => resolve(res.value))
+                .catch(err => reject(err));
+            };
+            reader.readAsArrayBuffer(archivo);
+        });
+    }
+
+
+    function extraerTextoImagen(archivo) {
+        return new Promise((resolve, reject) => {
+            if (typeof Tesseract === 'undefined') return resolve("Biblioteca Tesseract no cargada.");
+            let reader = new FileReader();
+            reader.onload = function() {
+                Tesseract.recognize(this.result, 'spa')
+                .then(({ data: { text } }) => resolve(text))
+                .catch(err => reject(err));
+            };
+            reader.readAsDataURL(archivo);
+        });
+    }
+
+
+    function clasificarTexto(texto) {
+        if (!texto) return "No Clasificado";
+        let textoMinuscula = texto.toLowerCase();
+        let maxCoincidencias = 0;
+        let categoriaGanadora = "Otro / Perfil General";
+
+
+        for (let cat in reglasClasificacion) {
+            let coincidencias = 0;
+            reglasClasificacion[cat].forEach(kw => {
+                if (textoMinuscula.includes(kw)) coincidencias++;
+            });
+            if (coincidencias > maxCoincidencias) {
+                maxCoincidencias = coincidencias;
+                categoriaGanadora = cat;
+            }
+        }
+        return categoriaGanadora;
+    }
+
+
+    function cargarTablaAdmin() {
+        const cuerpo = document.getElementById('tablaAdminCuerpo');
+        cuerpo.innerHTML = "";
+        let actuales = JSON.parse(localStorage.getItem('postulaciones')) || [];
+
+
+        if(actuales.length === 0) {
+            cuerpo.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding: 24px;">No hay postulaciones registradas aún.</td></tr>';
+            return;
+        }
+
+
+        actuales.forEach((p) => {
+            let claseBadge = "badge-otro";
+            if(p.clasificacion === "Data Science") claseBadge = "badge-ds";
+            if(p.clasificacion === "Desarrollo Web") claseBadge = "badge-web";
+            if(p.clasificacion === "Recursos Humanos") claseBadge = "badge-rrhh";
+
+
+            let botonAccion = p.archivoData
+                ? `<a href="${p.archivoData}" download="${p.archivoNombre}" target="_blank" class="btn-view-cv">Descargar CV</a>`
+                : `<span style="color:#94a3b8; font-size:12px;">Sin archivo</span>`;
+
+
+            cuerpo.innerHTML += `
+                <tr>
+                    <td style="font-weight:600;">${p.candidato}</td>
+                    <td>${p.puesto}</td>
+                    <td><span class="badge ${claseBadge}">${p.clasificacion}</span></td>
+                    <td style="color:var(--text-muted);">${p.archivoNombre}</td>
+                    <td style="color:var(--text-muted); font-size:13px;">${p.extracto}</td>
+                    <td>${botonAccion}</td>
+                </tr>
+            `;
+        });
+    }
+
+
+    function limpiarRegistros() {
+        if(confirm("¿Estás seguro de que deseas borrar todas las postulaciones de la base de datos?")) {
+            localStorage.removeItem('postulaciones');
+            cargarTablaAdmin();
+        }
+    }
+
+
+    function exportarExcel() {
+        let actuales = JSON.parse(localStorage.getItem('postulaciones')) || [];
+        if(actuales.length === 0) return alert("No hay datos para exportar.");
+        if (typeof XLSX === 'undefined') return alert("Biblioteca XLSX no cargada.");
+       
+        let datosExportar = actuales.map(p => ({
+            Candidato: p.candidato,
+            Puesto: p.puesto,
+            Clasificacion: p.clasificacion,
+            Archivo: p.archivoNombre,
+            Extracto: p.extracto
+        }));
+
+
+        const hoja = XLSX.utils.json_to_sheet(datosExportar);
+        const libro = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro, hoja, "Postulaciones");
+        XLSX.writeFile(libro, "reporte_postulaciones.xlsx");
+    }
+</script>
+</body>
+</html>
